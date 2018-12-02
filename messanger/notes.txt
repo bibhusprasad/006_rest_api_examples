@@ -1,0 +1,361 @@
+right click -> new maven web project -> arch type -> org.glassfish.jersey
+if not there add below
+
+<groupId>org.glassfish.jersey</groupId>
+<artifactId>jersey-bom</artifactId>
+<version>2.27</version>
+
+pom.xml
+-------------
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.messanger</groupId>
+	<artifactId>resources</artifactId>
+	<packaging>war</packaging>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>messanger</name>
+
+	<build>
+		<finalName>messanger</finalName>
+		<plugins>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.7.0</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-war-plugin</artifactId>
+				<version>3.2.1</version>
+				<configuration>
+					<warSourceDirectory>WebContent</warSourceDirectory>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.glassfish.jersey</groupId>
+				<artifactId>jersey-bom</artifactId>
+				<version>${jersey.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.glassfish.jersey.containers</groupId>
+			<artifactId>jersey-container-servlet-core</artifactId>
+			<!-- use the following artifactId if you don't need servlet 2.x compatibility -->
+			<!-- artifactId>jersey-container-servlet</artifactId -->
+		</dependency>
+		<dependency>
+			<groupId>org.glassfish.jersey.inject</groupId>
+			<artifactId>jersey-hk2</artifactId>
+		</dependency>
+		<!-- uncomment this to get JSON support <dependency> <groupId>org.glassfish.jersey.media</groupId> 
+			<artifactId>jersey-media-json-binding</artifactId> </dependency> -->
+	</dependencies>
+	<properties>
+		<jersey.version>2.27</jersey.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+</project>
+
+web.xml
+----------------
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This web.xml file is not required when using Servlet 3.0 container,
+     see implementation details http://jersey.java.net/nonav/documentation/latest/jax-rs.html -->
+<web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
+    <servlet>
+        <servlet-name>Jersey Web Application</servlet-name>
+        <servlet-class>org.glassfish.jersey.servlet.ServletContainer</servlet-class>
+        <init-param>
+            <param-name>jersey.config.server.provider.packages</param-name>
+            <param-value>com.messanger.resources</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>Jersey Web Application</servlet-name>
+        <url-pattern>/rest/*</url-pattern>
+    </servlet-mapping>
+</web-app>
+
+
+create resource handler
+-------------------------------------
+
+package com.messanger.resources;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
+@Path("/messages")
+public class MessageResource {
+
+	@GET
+	@Produces(MediaType.TEXT_PLAIN)
+	public String getMessages() {
+		return "Welcome To message application";
+	}
+}
+
+URL is http://localhost:8080/messanger/rest/messages
+
+Returning XML response
+-------------------------------------
+
+@XmlRootElement
+public class Message {
+	
+	private long id;
+	private String message;
+	private LocalDate created;
+	private String author;
+
+
+Add this annotation to your pojo class
+
+@GET
+	@Produces(MediaType.APPLICATION_XML)
+	public List<Message> getAllMessages() {
+		return messageService.getMessagesList();
+	}
+	
+How to get a single Message
+--------------------------------
+@GET
+	@Path("/messages/{messageId}")
+	@Produces(MediaType.APPLICATION_XML)
+	public Message getMessageById(@PathParam("messageId") String id) {
+		return messageService.getMessageById(Long.valueOf(id));
+	}
+	
+Returning a json response
+--------------------------------------
+add this in pom.xml
+
+<!-- uncomment this to get JSON support -->
+		<dependency> 
+			<groupId>org.glassfish.jersey.media</groupId>
+			<artifactId>jersey-media-json-binding</artifactId> 
+		</dependency>
+		
+	@GET
+	@Path("/messages/{messageId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Message getMessageById(@PathParam("messageId") String id) {
+		return messageService.getMessageById(Long.valueOf(id));
+	}
+	
+Post implementation
+---------------------------------------
+
+	@POST
+	@Path("/messages")
+	@Consumes(MediaType.APPLICATION_XML)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Message addMessage(Message message) {
+		return messageService.addAMessage(message);
+	}
+
+in postman
+
+[{"key":"Content-Type","value":"application/xml","description":"","type":"text","enabled":true}]
+
+<message>
+        <author>asu</author>
+        <created>2018:apr:21</created>
+        <message>learn sap</message>
+    </message>
+    
+    
+    
+All in one file
+-----------------------
+package com.messanger.resources;
+
+import java.util.List;
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
+import com.messanger.resources.model.Message;
+import com.messanger.resources.service.MessageService;
+
+@Path("/messages")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class MessageResource {
+	
+	private MessageService messageService = new MessageService();
+	
+	@GET
+	public List<Message> getAllMessages() {
+		return messageService.getAllMessages();
+	}
+	
+	@GET
+	@Path("/{messageId}")
+	public Message getMessageById(@PathParam("messageId") long id) {
+		return messageService.getMessage(id);
+	}
+	
+	@POST
+	public Message addMessage(Message message) {
+		return messageService.addMessage(message);
+	}
+	
+	@PUT
+	@Path("/{messageId}")
+	public List<Message> updateMessage(@PathParam("messageId") long id, Message message) {
+		message.setId(id);
+		messageService.updateMessage(message);
+		return messageService.getAllMessages();
+	}
+	
+	@DELETE
+	@Path("/{messageId}")
+	public List<Message> deleteMessage(@PathParam("messageId") long id) {
+		messageService.removeMessage(id);
+		return messageService.getAllMessages();
+	}
+	
+	@GET
+	@Path("/filter")
+	public List<Message> getAllMessagesCondition(@QueryParam("start") int start,
+												 @QueryParam("size") int size) {
+		return messageService.getAllMessagesCondition(start, size);
+	}
+}
+
+
+Query Param like Request Param in java
+--------------------------------------------------
+
+@GET
+	@Path("/filter")
+	public List<Message> getAllMessagesCondition(@QueryParam("start") int start,
+												 @QueryParam("size") int size) {
+		return messageService.getAllMessagesCondition(start, size);
+	} 
+	
+http://localhost:8080/messanger/rest/messages/filter?start=0&size=1
+
+@MatrixParam, @HeaderParam and @CookieParam
+--------------------------------------------------
+
+package com.messanger.resources;
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.CookieParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.MatrixParam;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.UriInfo;
+
+@Path("/injectdemo")
+@Consumes(MediaType.TEXT_PLAIN)
+@Produces(MediaType.TEXT_PLAIN)
+public class InjectDemoResource {
+	
+	@GET
+	@Path("/annotations")
+	public String getParamsUsingAnnotations(@MatrixParam("param") String matrixParam,
+											@HeaderParam("authSessionID") String header,
+											@CookieParam("name") String cookie) {
+		return "Matrix param: " + matrixParam + " Header param: " + header + " Cookie param: " + cookie;
+	}
+}
+
+
+URL : 
+
+http://localhost:8080/messanger/rest/injectdemo/annotations;param=bibhu
+
+[{"key":"authSessionID","value":"custome_value","description":"","type":"text","enabled":true}]
+
+add cookie name
+
+context annotation
+------------------------------------------------------------------
+	@GET
+	@Path("/context")
+	public String getParamsUsingContext(@Context UriInfo uriInfo, @Context HttpHeaders headers) {
+		
+		String path = uriInfo.getAbsolutePath().toString();
+		String cookies = headers.getCookies().toString();
+		return "Path : " + path + " Cookies: " + cookies;
+	}
+
+BeanParam annotation
+-------------------------------------------------------------------
+	@GET
+	public List<Message> getMessages(@BeanParam MessageFilterBean filterBean) {
+		
+		if (filterBean.getYear() > 0) {
+			return messageService.getAllMessagesForYear(filterBean.getYear());
+		}
+		if (filterBean.getStart() >= 0 && filterBean.getSize() > 0) {
+			return messageService.getAllMessagesPaginated(filterBean.getStart(), filterBean.getSize());
+		}
+		return messageService.getAllMessages();
+	}
+	
+public class MessageFilterBean {
+
+	private @QueryParam("year") int year;
+	private @QueryParam("start") int start;
+	private @QueryParam("size") int size;
+
+	public int getYear() {
+		return year;
+	}
+
+	public void setYear(int year) {
+		this.year = year;
+	}
+
+	public int getStart() {
+		return start;
+	}
+
+	public void setStart(int start) {
+		this.start = start;
+	}
+
+	public int getSize() {
+		return size;
+	}
+
+	public void setSize(int size) {
+		this.size = size;
+	}
+
+}
